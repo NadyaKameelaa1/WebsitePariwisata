@@ -1,0 +1,654 @@
+<?php
+session_start();
+require_once '../koneksi/koneksi.php';
+
+
+$sql_rekomendasi = "SELECT p.*, k.nama_kategori 
+                   FROM pariwisata p 
+                   JOIN kategori k ON p.id_kategori = k.id_kategori 
+                   WHERE p.rating_pariwisata = 5.0 
+                   ORDER BY p.rating_pariwisata DESC 
+                   LIMIT 3";
+$query_rekomendasi = mysqli_query($koneksi, $sql_rekomendasi);
+
+$isLoggedIn = isset($_SESSION['id_user']);
+
+// Query untuk mendapatkan data favorit user
+if ($isLoggedIn) {
+    $id_user = $_SESSION['id_user'];
+
+    $sql_favorit = "SELECT p.*, k.nama_kategori, f.id_favorit 
+                   FROM pariwisata p 
+                   JOIN kategori k ON p.id_kategori = k.id_kategori 
+                   JOIN favorit f ON p.id_pariwisata = f.id_pariwisata 
+                   WHERE f.id_user = '$id_user' 
+                   ORDER BY f.tanggal_favorit DESC";
+
+    $query_favorit = mysqli_query($koneksi, $sql_favorit);
+    $jumlah_favorit = mysqli_num_rows($query_favorit);
+} else {
+    $jumlah_favorit = 0;
+    $query_favorit = [];
+}
+
+$query_total = "SELECT COUNT(*) as total FROM pariwisata";
+$result_total = mysqli_query($koneksi, $query_total);
+$row_total = mysqli_fetch_assoc($result_total);
+$total_destinasi = $row_total['total'];
+
+$query_ikonik = "SELECT COUNT(*) as ikonik FROM pariwisata WHERE rating_pariwisata = 5.0";
+$result_ikonik = mysqli_query($koneksi, $query_ikonik);
+$row_ikonik = mysqli_fetch_assoc($result_ikonik);
+$destinasi_ikonik = $row_ikonik['ikonik'];
+
+$wisatawan_puas = 1000;
+?>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favorit | Hello Indonesia</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="favorit.css">
+</head>
+
+<body>
+    <?php include "template/navbar.php"; ?>
+
+    <section class="hero">
+        <div class="search-container">
+            <form action="hasil_pencarian.php" method="GET" class="search-form">
+                <input type="text" name="q" placeholder="Cari Pariwisata..." class="search-input" id="searchInput">
+                <button type="submit" class="search-btn">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+            </form>
+
+            <div class="search-suggestions" id="searchSuggestions">
+                <div class="suggestions-header">
+                    <h4>Rekomendasi Untuk Anda</h4>
+                </div>
+                <div class="suggestions-list">
+                    <?php while ($rekomendasi = mysqli_fetch_assoc($query_rekomendasi)): ?>
+                        <?php
+                        $id_rekomendasi = $rekomendasi['id_pariwisata'];
+                        $sql_gambar_rekom = "SELECT nama_gambar FROM pariwisata_gambar WHERE id_pariwisata = '$id_rekomendasi' ORDER BY urutan ASC LIMIT 1";
+                        $query_gambar_rekom = mysqli_query($koneksi, $sql_gambar_rekom);
+                        $gambar_rekom = mysqli_fetch_assoc($query_gambar_rekom);
+
+                        $gambar_url_rekom = isset($gambar_rekom['nama_gambar'])
+                            ? '../admin/gambar-admin/pariwisata/' . $gambar_rekom['nama_gambar']
+                            : 'gambar/default.jpg';
+                        ?>
+
+                        <div class="suggestion-item" data-name="<?= htmlspecialchars($rekomendasi['nama_pariwisata']) ?>">
+                            <div class="suggestion-image">
+                                <img src="<?= htmlspecialchars($gambar_url_rekom) ?>" alt="<?= htmlspecialchars($rekomendasi['nama_pariwisata']) ?>">
+                            </div>
+                            <div class="suggestion-info">
+                                <h5 class="pariwisata-name"><?= htmlspecialchars($rekomendasi['nama_pariwisata']) ?></h5>
+                                <p class="suggestion-location">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                    <?= htmlspecialchars($rekomendasi['lokasi_pariwisata']) ?>
+                                </p>
+                                <div class="suggestion-rating">
+                                    <i class="fa-solid fa-star" style="color: #FFCC00;"></i>
+                                    <span class="rating-number"><?= number_format($rekomendasi['rating_pariwisata'], 1) ?></span>
+                                    <span class="suggestion-category"><?= htmlspecialchars($rekomendasi['nama_kategori']) ?></span>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endwhile; ?>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="container">
+        <br><br><br><br><br>
+
+        <section class="populer-section">
+            <div class="kategori-header">
+                <button class="kategori-btn">FAVORIT ANDA</button>
+                <h2>Semua Pariwisata <span>Favorit Anda</span></h2>
+
+                <p class="jumlah-favorit"><b><?= $jumlah_favorit ?></b> destinasi favorit</p>
+                <br>
+            </div>
+        </section>
+
+        <div class="populer-grid">
+            <?php if ($isLoggedIn): ?>
+                <?php if ($jumlah_favorit > 0): ?>
+                    <?php while ($data = mysqli_fetch_assoc($query_favorit)): ?>
+                        <?php
+                        $id_pariwisata = $data['id_pariwisata'];
+                        $sql_gambar = "SELECT nama_gambar 
+                                         FROM pariwisata_gambar 
+                                         WHERE id_pariwisata = '$id_pariwisata'
+                                         ORDER BY urutan ASC
+                                         LIMIT 1";
+                        $query_gambar = mysqli_query($koneksi, $sql_gambar);
+                        $gambar = mysqli_fetch_assoc($query_gambar);
+
+                        $path_gambar = '../admin/gambar-admin/pariwisata/';
+                        $gambar_url = isset($gambar['nama_gambar'])
+                            ? $path_gambar . $gambar['nama_gambar']
+                            : 'gambar/default.jpg';
+                        ?>
+
+                        <div class="populer-card">
+                            <div class="populer-img">
+                                <img src="<?= htmlspecialchars($gambar_url) ?>"
+                                    alt="<?= htmlspecialchars($data['nama_pariwisata']) ?>">
+
+                                <div class="top-bar">
+                                    <div class="left-info">
+                                        <span class="rating">
+                                            <i class="fa-solid fa-star" style="color: #FFCC00;"></i>
+                                            <?= number_format($data['rating_pariwisata'], 1) ?>
+                                        </span>
+                                        <span class="kategorii"><?= htmlspecialchars($data['nama_kategori']) ?></span>
+                                    </div>
+                                    <button class="favorite-btn active" data-id="<?= $data['id_pariwisata'] ?>">
+                                        <i class="fa-solid fa-heart"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="populer-content">
+                                <h3><?= htmlspecialchars($data['nama_pariwisata']) ?></h3>
+                                <p class="lokasi">
+                                    <i class="fa-solid fa-location-dot" style="color: #FFCC00;"></i>
+                                    <?= htmlspecialchars($data['lokasi_pariwisata']) ?>
+                                </p>
+
+                                <?php
+                                $deskripsi_asli = utf8_encode(strip_tags($data['deskripsi_pariwisata']));
+                                $deskripsi = explode(" ", $deskripsi_asli);
+                                $deskripsi_singkat = implode(" ", array_slice($deskripsi, 0, 20));
+                                if (count($deskripsi) > 20) $deskripsi_singkat .= "...";
+                                ?>
+
+                                <p class="deskripsi"><?= htmlspecialchars($deskripsi_singkat) ?></p>
+
+                                <div class="card-bottom">
+                                    <p class="harga">
+                                        IDR <?= number_format($data['harga_pariwisata'] / 1000, 0) ?>K
+                                        <span><?= $data['satuan_harga'] ?></span>
+                                    </p>
+
+                                    <button class="btn-detail" data-modal="modal<?= $data['id_pariwisata'] ?>">
+                                        Lihat Detail <i class="fa-solid fa-circle-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="modal<?= $data['id_pariwisata'] ?>" class="modal">
+                            <div class="modal-content detail-modal">
+                                <span class="close">&times;</span>
+
+                                <div class="breadcrumb">
+                                    <a href="beranda.php">Beranda</a> &gt;
+                                    <a href="pariwisata.php">Pariwisata</a> &gt;
+                                    <span>Detail Pariwisata</span>
+                                </div>
+
+                                <div class="detail-header">
+                                    <h1><?= htmlspecialchars($data['nama_pariwisata']) ?></h1>
+                                    <p class="location">
+                                        <i class="fa-solid fa-location-dot"></i>
+                                        <?= htmlspecialchars($data['lokasi_pariwisata']) ?>
+                                    </p>
+                                </div>
+
+                                <div class="detail-main-content">
+                                    <!-- kolom kiri -->
+                                    <div class="detail-left">
+
+                                        <div class="gallery-section">
+                                            <div class="gallery-grid-layout">
+                                                <?php
+                                                $id_pariwisata = $data['id_pariwisata'];
+                                                $sql_gambar = "SELECT nama_gambar, urutan FROM pariwisata_gambar WHERE id_pariwisata = '$id_pariwisata' ORDER BY urutan ASC LIMIT 5";
+
+                                                $query_gambar = mysqli_query($koneksi, $sql_gambar);
+                                                $gambar_data = array();
+
+                                                for ($i = 1; $i <= 5; $i++) {
+                                                    $gambar_data[$i] = '../user/gambar/default/gambar-default.png';
+                                                }
+
+                                                while ($gambar = mysqli_fetch_assoc($query_gambar)) {
+                                                    $urutan = $gambar['urutan'];
+                                                    $nama_gambar = $gambar['nama_gambar'];
+
+                                                    if ($urutan >= 1 && $urutan <= 5 && !empty($nama_gambar)) {
+                                                        $gambar_path = '../admin/gambar-admin/pariwisata/' . $nama_gambar;
+
+                                                        if (file_exists($gambar_path)) {
+                                                            $gambar_data[$urutan] = $gambar_path;
+                                                        }
+                                                    }
+                                                }
+
+                                                $path_default = '../user/gambar/default/default.png';
+                                                ?>
+
+                                                <div class="main-large-image">
+                                                    <img src="<?= htmlspecialchars($gambar_data[1]) ?>"
+                                                        alt="Main image"
+                                                        id="main-image"
+                                                        onerror="this.src='<?= $path_default ?>'">
+                                                </div>
+
+                                                <div class="small-bottom-div">
+                                                    <div class="small-images-bottom-1">
+                                                        <div class="small-image" data-index="3">
+                                                            <img src="<?= htmlspecialchars($gambar_data[4]) ?>"
+                                                                alt="Image 4"
+                                                                onerror="this.src='<?= $path_default ?>'">
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="small-bottom-div">
+                                                    <div class="small-images-bottom-2">
+                                                        <div class="small-image" data-index="4">
+                                                            <img src="<?= htmlspecialchars($gambar_data[5]) ?>"
+                                                                alt="Image 5"
+                                                                onerror="this.src='<?= $path_default ?>'">
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="small-images-container">
+                                                    <div class="small-images-right">
+                                                        <div class="small-image" data-index="1">
+                                                            <img src="<?= htmlspecialchars($gambar_data[2]) ?>"
+                                                                alt="Image 2"
+                                                                onerror="this.src='<?= $path_default ?>'">
+                                                        </div>
+
+                                                        <div class="small-image" data-index="2">
+                                                            <img src="<?= htmlspecialchars($gambar_data[3]) ?>"
+                                                                alt="Image 3"
+                                                                onerror="this.src='<?= $path_default ?>'">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="info-section">
+                                            <h3>Informasi Lebih Lanjut</h3>
+                                            <div class="info-grid">
+                                                <div class="info-item">
+                                                    <div class="info-label">
+                                                        <i class="fa-solid fa-map-marker-alt"></i>
+                                                        <span>Alamat</span>
+                                                    </div>
+                                                    <div class="info-value"><?= nl2br(htmlspecialchars($data['alamat_pariwisata'])) ?></div>
+                                                </div>
+
+                                                <div class="info-item">
+                                                    <div class="info-label">
+                                                        <i class="fa-solid fa-clock"></i>
+                                                        <span>Jam Buka</span>
+                                                    </div>
+                                                    <div class="info-value">
+                                                        <?= htmlspecialchars($data['hari_operasional']) ?>
+                                                        <?php
+                                                        $jam_buka = $data['jam_buka'] ?? '';
+                                                        $jam_tutup = $data['jam_tutup'] ?? '';
+
+                                                        $jam_buka_valid = !empty($jam_buka) && $jam_buka != '00:00:00' && $jam_buka != '00:00';
+                                                        $jam_tutup_valid = !empty($jam_tutup) && $jam_tutup != '00:00:00' && $jam_tutup != '00:00';
+
+                                                        if ($jam_buka_valid && $jam_tutup_valid):
+                                                        ?>
+                                                            <br>
+                                                            <?= date('H:i', strtotime($jam_buka)) ?> - <?= date('H:i', strtotime($jam_tutup)) ?>
+                                                            <?php
+                                                            $zona = $data['zona_waktu'] ?? '';
+                                                            if (!empty($zona) && $zona != 'NULL' && $zona != 'null'):
+                                                            ?>
+                                                                <?= htmlspecialchars($zona) ?>
+                                                            <?php endif; ?>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- kolom kanan -->
+                                    <div class="detail-right">
+
+                                        <div class="sidebar-content">
+                                            <div class="rating-display">
+                                                <?php
+
+                                                $rating = $data['rating_pariwisata'];
+                                                $fullStars = floor($rating);
+                                                $halfStar = ($rating - $fullStars) >= 0.5;
+
+                                                if ($rating == 5.0): ?>
+                                                    <div class="rating-approve">
+                                                        <i class="fa-solid fa-award"></i>
+                                                        <span>Rekomendasi Pariwisata</span>
+                                                    </div>
+
+                                                <?php endif; ?>
+                                                <div class="stars">
+
+
+
+                                                    <?php
+
+
+
+                                                    for ($i = 1; $i <= 5; $i++) {
+                                                        if ($i <= $fullStars) {
+                                                            echo '<i class="fa-solid fa-star"></i>';
+                                                        } elseif ($halfStar && $i == $fullStars + 1) {
+                                                            echo '<i class="fa-solid fa-star-half-stroke"></i>';
+                                                        } else {
+                                                            echo '<i class="fa-regular fa-star"></i>';
+                                                        }
+                                                    }
+                                                    ?>
+                                                </div>
+
+                                                <span class="rating-value"><?= number_format($rating, 1) ?></span>
+
+
+
+
+                                            </div>
+
+                                            <div class="price-box">
+
+
+
+                                                <div class="price-header">
+                                                    <span class="price-label">Harga</span>
+                                                    <div class="price-main">
+                                                        <span class="price-amount">IDR <?= number_format($data['harga_pariwisata'], 0, ',', '.') ?></span>
+                                                        <span class="price-unit"><?= $data['satuan_harga'] ?></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="divider"></div>
+
+
+                                                <div class="description-section">
+                                                    <h3>Deskripsi Pariwisata</h3>
+                                                    <p> <?php
+                                                        $deskripsi = $data['deskripsi_pariwisata'];
+                                                        if (!empty($deskripsi)) {
+
+                                                            $deskripsi_utf8 = utf8_encode($deskripsi);
+                                                            echo nl2br(htmlspecialchars($deskripsi_utf8));
+                                                        } else {
+                                                            echo "Deskripsi tidak tersedia.";
+                                                        }
+                                                        ?>
+                                                    </p>
+                                                </div>
+
+                                                <br>
+
+
+
+                                                <div class="recommendation-card">
+                                                    <div class="recommendation-category">
+
+                                                        <?php
+                                                        $kategori = $data['nama_kategori'];
+                                                        $emoji = '';
+
+                                                        switch (strtolower($kategori)) {
+                                                            case 'pantai':
+                                                                $emoji = '🏝️';
+                                                                break;
+                                                            case 'gunung':
+                                                                $emoji = '⛰️';
+                                                                break;
+                                                            case 'kuliner':
+                                                                $emoji = '🍜';
+                                                                break;
+                                                            case 'sejarah':
+                                                                $emoji = '🏛️';
+                                                                break;
+                                                            case 'budaya':
+                                                                $emoji = '🎭';
+                                                                break;
+                                                            default:
+                                                                $emoji = '📍';
+                                                                break;
+                                                        }
+                                                        ?>
+                                                        <span class="category-emoji"><?= $emoji ?></span>
+                                                        <span class="category-name"><?= htmlspecialchars($kategori) ?></span>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+
+                                            <div class="recommendation-section">
+                                                <div class="favorite-section">
+                                                    <p class="favorite-text">Suka dengan pariwisata ini?</p>
+                                                    <button class="favorite-btn-large" data-id="<?= $data['id_pariwisata'] ?>">
+                                                        <i class="fa-regular fa-heart"></i>
+                                                        Tambahkan Favorit
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    <?php endwhile; ?>
+
+
+                <?php else: ?>
+                    <div class="empty-favorit">
+                        <i class="fa-regular fa-heart"></i>
+                        <h3>Belum ada destinasi favorit</h3>
+                        <p>Tambahkan destinasi favorit Anda untuk melihatnya di sini</p>
+                        <a href="pariwisata.php" class="btn-explore">Jelajahi Pariwisata</a>
+                    </div>
+                <?php endif; ?>
+            <?php else: ?>
+                <div class="login-required">
+                    <br><br>
+                    <i class="fa-solid fa-lock"></i>
+                    <h3>Login diperlukan</h3>
+                    <p>Silakan login untuk melihat daftar favorit Anda</p>
+                    <a href="../login/login.php" class="btn-login">Login Sekarang</a>
+                </div>
+            <?php endif; ?>
+        </div>
+
+    </div>
+
+    <br><br>
+    <div class="container">
+        <section class="why-hello-indonesia">
+            <div class="stats-container">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-smile"></i>
+                    </div>
+                    <div class="stat-number" data-count="<?php echo $wisatawan_puas; ?>">0</div>
+                    <p class="stat-label">Wisatawan Puas</p>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-number" data-count="<?php echo $destinasi_ikonik; ?>">0</div>
+                    <p class="stat-label">Destinasi Ikonik</p>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-fire"></i>
+                    </div>
+                    <div class="stat-number" data-count="<?php echo $total_destinasi; ?>">0</div>
+                    <p class="stat-label">Tempat Hits</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <?php include "template/footer.php"; ?>
+
+    <script>
+        document.querySelectorAll('.favorite-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const idPariwisata = this.getAttribute('data-id');
+                const isLoggedIn = <?= $isLoggedIn ? 'true' : 'false' ?>;
+
+                if (!isLoggedIn) {
+                    alert('Silakan login terlebih dahulu untuk mengelola favorit');
+                    return;
+                }
+
+                if (confirm('Hapus dari favorit?')) {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', 'hapus_favorit.php', true);
+                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.success) {
+                                btn.closest('.populer-card').remove();
+
+                                const jumlahElement = document.querySelector('.jumlah-favorit');
+                                if (jumlahElement) {
+                                    const currentCount = parseInt(jumlahElement.textContent);
+                                    jumlahElement.textContent = (currentCount - 1) + ' destinasi favorit';
+                                }
+
+                                if (document.querySelectorAll('.populer-card').length === 0) {
+                                    document.querySelector('.populer-grid').innerHTML = `
+                                        <div class="empty-favorit">
+                                            <i class="fa-regular fa-heart"></i>
+                                            <h3>Belum ada destinasi favorit</h3>
+                                            <p>Tambahkan destinasi favorit Anda untuk melihatnya di sini</p>
+                                            <a href="pariwisata.php" class="btn-explore">Jelajahi Pariwisata</a>
+                                        </div>
+                                    `;
+                                }
+                            } else {
+                                alert('Gagal menghapus favorit: ' + response.message);
+                            }
+                        }
+                    };
+
+                    xhr.send('id_pariwisata=' + idPariwisata);
+                }
+            });
+        });
+
+        document.querySelectorAll('.btn-detail').forEach(button => {
+            button.addEventListener('click', function() {
+                const modalId = this.getAttribute('data-modal');
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                }
+            });
+        });
+
+        document.querySelectorAll('.close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', function() {
+                const modal = this.closest('.modal');
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                modal.classList.add('blur-strong');
+            });
+        });
+
+        window.addEventListener('click', function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        });
+
+        // --------- search
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const searchSuggestions = document.getElementById('searchSuggestions');
+            const searchForm = document.querySelector('.search-form');
+            const suggestionItems = document.querySelectorAll('.suggestion-item');
+
+            searchInput.addEventListener('focus', function() {
+                searchSuggestions.classList.add('active');
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!searchContainer.contains(e.target)) {
+                    searchSuggestions.classList.remove('active');
+                }
+            });
+
+            suggestionItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const destinationName = this.getAttribute('data-name');
+                    searchInput.value = destinationName;
+                    searchSuggestions.classList.remove('active');
+
+                    setTimeout(() => {
+                        searchForm.submit();
+                    }, 300);
+                });
+            });
+
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchForm.submit();
+                }
+            });
+
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+
+                if (searchTerm.length > 0) {
+                    searchSuggestions.classList.add('active');
+
+                    suggestionItems.forEach(item => {
+                        const itemName = item.getAttribute('data-name').toLowerCase();
+                        if (itemName.includes(searchTerm)) {
+                            item.style.display = 'flex';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                } else {
+                    suggestionItems.forEach(item => {
+                        item.style.display = 'flex';
+                    });
+                }
+            });
+        });
+
+        const searchContainer = document.querySelector('.search-container');
+    </script>
+
+</body>
+
+</html>
