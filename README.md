@@ -3,7 +3,7 @@ Repositori ini dibuat untuk keperluan projek Website Pariwisata yang saya beri n
 
 👤 . Role
 
-User: Dapat melihat daftar destinasi wisata berdasarkan kategori, melihat detail informasi dan gambar, menambahkan dan menghapus favorit, serta melihat riwayat aktivitas terbaru.
+User: Dapat melihat daftar destinasi wisata berdasarkan kategori, melihat detail informasi dan gambar, serta menambahkan dan menghapus favorit.
 
 Admin: Memiliki akses penuh ke Dashboard untuk mengelola data wisata (CRUD), mengatur gambar destinasi, mengawasi total destinasi, total favorit, dan total pengguna, menampilkan grafik Statistik Favorit Bulanan, serta memantau aktivitas dan interaksi pengguna secara real-time.
 
