@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Quicksand:wght@400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Poppins:wght@400;600&display=swap');
+
+html, body, input {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Quicksand', sans-serif;
+  /* font-weight: bold; */
+}
+
+b{
+    font-weight: bold;
+}
+
+.hero {
+  height: 100vh;
+  width: 100%;
+  background: url("gambar-login/Indonesia (23).png") no-repeat center center/cover;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.login-container {
+  position: relative;
+  z-index: 2;
+  margin-top: 300px;
+  margin-left: -765px;
+  /* background: rgba(255, 255, 255, 0.92); */
+  /* backdrop-filter: blur(5px); */
+  padding: 30px 40px;
+  border-radius: 15px;
+  width: 360px;
+  /* box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); */
+  text-align: center;
+}
+
+.logo {
+  width: 60px;
+  margin-bottom: 10px;
+}
+
+.login-title {
+  color: #00bcd4;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 25px;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-bottom: 18px;
+  padding: 8px 12px;
+  transition: 0.3s;
+}
+
+.input-group i {
+  color: #00bcd4;
+  margin-right: 10px;
+}
+
+.input-group input {
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.input-group:focus-within {
+  border-color: #00bcd4;
+  box-shadow: 0 0 5px rgba(0, 188, 212, 0.5);
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background: #00bcd4;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.1s ease;
+}
+
+button:hover {
+  background: #0097a7;
+  transform: translateY(-1px);
+}
+
+.register-link {
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.register-link a {
+  color: #00bcd4;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.register-link a:hover {
+  text-decoration: underline;
+}
+
+.password-group {
+    position: relative;
+}
+
+.eye-icon {
+    position: absolute;
+    right: -1px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #00bcd4;
+    z-index: 3;
+}
+
+.eye-icon:hover {
+    color: #0097a7;
+}
